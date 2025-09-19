@@ -1,0 +1,482 @@
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ZeroArc - Dungeon Booking</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #111827;
+            color: #F3F4F6;
+        }
+        .card {
+            background-color: #1F2937;
+            border: 1px solid #374151;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+        }
+        .btn {
+            transition: all 0.2s ease-in-out;
+        }
+        .btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+        .input-field {
+            background-color: #374151;
+            border: 1px solid #4B5563;
+            color: #F3F4F6;
+        }
+        .input-field::placeholder {
+            color: #9CA3AF;
+        }
+        .notification {
+            position: fixed;
+            bottom: 1.5rem;
+            left: 50%;
+            transform: translateX(-50%);
+            padding: 1rem 1.5rem;
+            border-radius: 0.5rem;
+            color: white;
+            opacity: 0;
+            transition: opacity 0.3s ease-in-out, transform 0.3s ease-in-out;
+            visibility: hidden;
+            z-index: 1000;
+        }
+        .notification.show {
+            opacity: 1;
+            transform: translateX(-50%) translateY(0);
+            visibility: visible;
+        }
+        .notification.success {
+            background-color: #16A34A; /* Green 600 */
+        }
+        .notification.error {
+            background-color: #DC2626; /* Red 600 */
+        }
+        .loader {
+            border: 4px solid #f3f3f3;
+            border-top: 4px solid #3498db;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            margin-left: -20px;
+            margin-top: -20px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .delete-btn {
+            background: none;
+            border: none;
+            color: #9CA3AF;
+            cursor: pointer;
+            margin-left: 8px;
+            transition: color 0.2s;
+        }
+        .delete-btn:hover {
+            color: #EF4444; /* Red 500 */
+        }
+        .form-radio {
+            -webkit-appearance: none;
+            -moz-appearance: none;
+            appearance: none;
+            border-radius: 50%;
+            width: 1.25rem;
+            height: 1.25rem;
+            border: 2px solid #4B5563;
+            transition: 0.2s all linear;
+            margin-right: 0.5rem;
+            position: relative;
+            top: 2px;
+        }
+        .form-radio:checked {
+            border-color: #F87171; /* Red 400 */
+        }
+        .form-radio:checked::before {
+            content: '';
+            display: block;
+            width: 0.75rem;
+            height: 0.75rem;
+            margin: 2px;
+            border-radius: 50%;
+            background-color: #F87171; /* Red 400 */
+        }
+        .form-radio.mbf:checked {
+             border-color: #60A5FA; /* Blue 400 */
+        }
+        .form-radio.mbf:checked::before {
+             background-color: #60A5FA; /* Blue 400 */
+        }
+    </style>
+</head>
+<body class="min-h-screen flex items-center justify-center p-4">
+    <div id="loader" class="loader"></div>
+    <div id="app-content" class="w-full max-w-6xl mx-auto hidden">
+        <header class="text-center mb-8">
+            <h1 class="text-4xl md:text-5xl font-bold text-white">⭐ ZEROARC - TRUSTED DUNGEON SERVICE ⭐</h1>
+            <p class="text-gray-400 mt-2">Service is not available every day. Slot availability will be updated daily. Bookings are valid for today only.</p>
+            <p id="real-time-clock" class="text-lg text-yellow-300 font-semibold mt-4"></p>
+        </header>
+
+        <main class="grid grid-cols-1 md:grid-cols-2 gap-8 mb-8">
+            <!-- RL Booking Card -->
+            <div class="card flex flex-col">
+                <h2 class="text-2xl font-bold mb-4 text-center text-red-400">🔥 RL DUNGEON CARRY SERVICE</h2>
+                <ul class="space-y-2 text-gray-300 mb-6 flex-grow">
+                    <li><strong>Start Time:</strong> 10:00 PM</li>
+                    <li><strong>Price:</strong> 150 Gold / Run</li>
+                    <li><strong>Schedule:</strong> 2 Run Sessions per Day</li>
+                </ul>
+                <div class="text-center mb-4">
+                    <p class="text-lg font-semibold">Slots Left:
+                        <span id="rl-slots-left" class="text-xl font-bold text-green-400"></span> / 4
+                    </p>
+                </div>
+                <div class="mt-auto">
+                    <input type="text" id="rl-ign" class="w-full p-3 rounded-md input-field mb-4" placeholder="Enter Your In-Game Name">
+                    <div class="mb-4">
+                         <label class="block text-sm font-medium text-gray-400 mb-2">Number of Runs:</label>
+                         <div class="flex gap-x-6">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="rl-runs" value="1" class="form-radio" checked>
+                                <span class="ml-2 text-white">1 Run</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="rl-runs" value="2" class="form-radio">
+                                <span class="ml-2 text-white">2 Runs</span>
+                            </label>
+                         </div>
+                    </div>
+                    <button id="book-rl-btn" class="w-full bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg btn">
+                        Book RL Slot
+                    </button>
+                </div>
+            </div>
+
+            <!-- MBF Booking Card -->
+            <div class="card flex flex-col">
+                <h2 class="text-2xl font-bold mb-4 text-center text-blue-400">❄️ MBF DUNGEON CARRY SERVICE</h2>
+                <ul class="space-y-2 text-gray-300 mb-6 flex-grow">
+                    <li><strong>Start Time:</strong> 11:30 PM</li>
+                    <li><strong>Price:</strong> 50 Gold / Run</li>
+                    <li><strong>Schedule:</strong> 2 Run Sessions per Day</li>
+                </ul>
+                <div class="text-center mb-4">
+                    <p class="text-lg font-semibold">Slots Left:
+                        <span id="mbf-slots-left" class="text-xl font-bold text-green-400"></span> / 6
+                    </p>
+                </div>
+                <div class="mt-auto">
+                    <input type="text" id="mbf-ign" class="w-full p-3 rounded-md input-field mb-4" placeholder="Enter Your In-Game Name">
+                     <div class="mb-4">
+                         <label class="block text-sm font-medium text-gray-400 mb-2">Number of Runs:</label>
+                         <div class="flex gap-x-6">
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="mbf-runs" value="1" class="form-radio mbf" checked>
+                                <span class="ml-2 text-white">1 Run</span>
+                            </label>
+                            <label class="flex items-center cursor-pointer">
+                                <input type="radio" name="mbf-runs" value="2" class="form-radio mbf">
+                                <span class="ml-2 text-white">2 Runs</span>
+                            </label>
+                         </div>
+                    </div>
+                    <button id="book-mbf-btn" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg btn">
+                        Book MBF Slot
+                    </button>
+                </div>
+            </div>
+        </main>
+
+        <footer class="card">
+            <h3 class="text-xl font-bold mb-4 text-center">Today's Bookings</h3>
+            <div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+                <div>
+                    <h4 class="font-semibold text-red-400 mb-2">RL Bookings:</h4>
+                    <ul id="rl-bookings-list" class="space-y-1">
+                    </ul>
+                </div>
+                <div>
+                    <h4 class="font-semibold text-blue-400 mb-2">MBF Bookings:</h4>
+                    <ul id="mbf-bookings-list" class="space-y-1">
+                    </ul>
+                </div>
+            </div>
+        </footer>
+
+        <div class="card mt-8">
+             <h3 class="text-xl font-bold mb-4 text-center">Admin Controls</h3>
+             <div class="max-w-md mx-auto">
+                <label for="admin-password" class="block text-sm font-medium text-gray-400 mb-2">Admin Password:</label>
+                <input type="password" id="admin-password" class="w-full p-3 rounded-md input-field mb-4" placeholder="Enter password">
+                <p class="text-center text-gray-400 mb-4">Use the password to delete individual bookings or reset all slots.</p>
+                <div class="flex flex-col sm:flex-row gap-4 justify-center">
+                    <button id="reset-rl-btn" class="w-full sm:w-auto bg-red-600 hover:bg-red-700 text-white font-bold py-3 px-4 rounded-lg btn">
+                        Reset All RL Slots
+                    </button>
+                    <button id="reset-mbf-btn" class="w-full sm:w-auto bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 px-4 rounded-lg btn">
+                        Reset All MBF Slots
+                    </button>
+                </div>
+             </div>
+        </div>
+    </div>
+    <div id="notification" class="notification"></div>
+
+    <script type="module">
+        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
+        import { getAuth, signInAnonymously, signInWithCustomToken, onAuthStateChanged } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
+        import { getFirestore, doc, onSnapshot, setDoc, updateDoc, arrayUnion, arrayRemove } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
+
+        const firebaseConfig = typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {};
+        const app = initializeApp(firebaseConfig);
+        const auth = getAuth(app);
+        const db = getFirestore(app);
+        
+        const MAX_RL_SLOTS = 4;
+        const MAX_MBF_SLOTS = 6;
+        const ADMIN_PASSWORD = 'akudewa323031';
+        let currentData = {};
+
+        const loader = document.getElementById('loader');
+        const appContent = document.getElementById('app-content');
+        const rlSlotsLeftEl = document.getElementById('rl-slots-left');
+        const mbfSlotsLeftEl = document.getElementById('mbf-slots-left');
+        const rlIgnInput = document.getElementById('rl-ign');
+        const mbfIgnInput = document.getElementById('mbf-ign');
+        const bookRlBtn = document.getElementById('book-rl-btn');
+        const bookMbfBtn = document.getElementById('book-mbf-btn');
+        const rlBookingsList = document.getElementById('rl-bookings-list');
+        const mbfBookingsList = document.getElementById('mbf-bookings-list');
+        const notificationEl = document.getElementById('notification');
+        const resetRlBtn = document.getElementById('reset-rl-btn');
+        const resetMbfBtn = document.getElementById('reset-mbf-btn');
+        const adminPasswordInput = document.getElementById('admin-password');
+        const clockEl = document.getElementById('real-time-clock');
+
+        function updateClock() {
+            const now = new Date();
+            const options = {
+                weekday: 'long', year: 'numeric', month: 'long', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit',
+                timeZone: 'Asia/Jakarta',
+                hour12: true
+            };
+            const timeString = new Intl.DateTimeFormat('en-US', options).format(now);
+            clockEl.textContent = `Current Time: ${timeString}`;
+        }
+
+        function getTodayDateString() {
+            const today = new Date();
+            const year = today.getFullYear();
+            const month = String(today.getMonth() + 1).padStart(2, '0');
+            const day = String(today.getDate()).padStart(2, '0');
+            return `${year}-${month}-${day}`;
+        }
+        
+        const appId = typeof __app_id !== 'undefined' ? __app_id : 'default-app-id';
+        const today = getTodayDateString();
+        const docRef = doc(db, `artifacts/${appId}/public/data/zeroArcBookings`, today);
+
+        function showNotification(message, type = 'success') {
+            notificationEl.textContent = message;
+            notificationEl.className = `notification ${type} show`;
+            setTimeout(() => {
+                notificationEl.classList.remove('show');
+            }, 3000);
+        }
+
+        function updateUI(data) {
+            currentData = data || { rlBookings: [], mbfBookings: [] };
+            
+            const rlBookings = currentData.rlBookings || [];
+            const mbfBookings = currentData.mbfBookings || [];
+
+            const rlSlotsTaken = rlBookings.reduce((sum, booking) => sum + booking.runs, 0);
+            const mbfSlotsTaken = mbfBookings.reduce((sum, booking) => sum + booking.runs, 0);
+
+            const rlSlotsLeft = MAX_RL_SLOTS - rlSlotsTaken;
+            const mbfSlotsLeft = MAX_MBF_SLOTS - mbfSlotsTaken;
+
+            rlSlotsLeftEl.textContent = rlSlotsLeft;
+            mbfSlotsLeftEl.textContent = mbfSlotsLeft;
+
+            bookRlBtn.disabled = rlSlotsLeft <= 0;
+            bookMbfBtn.disabled = mbfSlotsLeft <= 0;
+            
+            const createBookingListItem = (booking, type) => {
+                const li = document.createElement('li');
+                li.className = 'flex justify-between items-center text-gray-300';
+                
+                const bookingText = document.createElement('span');
+                const runText = booking.runs > 1 ? 'runs' : 'run';
+                bookingText.textContent = `${booking.ign} (${booking.runs} ${runText})`;
+                li.appendChild(bookingText);
+
+                const deleteBtn = document.createElement('button');
+                deleteBtn.innerHTML = '🗑️';
+                deleteBtn.className = 'delete-btn';
+                deleteBtn.title = `Delete booking for ${booking.ign}`;
+                deleteBtn.onclick = () => handleDeleteConsumer(booking, type);
+                li.appendChild(deleteBtn);
+                return li;
+            };
+
+            rlBookingsList.innerHTML = '';
+            if (rlBookings.length === 0) {
+                rlBookingsList.innerHTML = '<li class="text-gray-500">No bookings yet.</li>';
+            } else {
+                rlBookings.forEach(booking => rlBookingsList.appendChild(createBookingListItem(booking, 'rl')));
+            }
+            
+            mbfBookingsList.innerHTML = '';
+            if (mbfBookings.length === 0) {
+                mbfBookingsList.innerHTML = '<li class="text-gray-500">No bookings yet.</li>';
+            } else {
+                mbfBookings.forEach(booking => mbfBookingsList.appendChild(createBookingListItem(booking, 'mbf')));
+            }
+            loader.style.display = 'none';
+            appContent.classList.remove('hidden');
+        }
+
+        async function createInitialDocument() {
+             await setDoc(docRef, {
+                date: today,
+                rlBookings: [],
+                mbfBookings: [],
+            });
+        }
+
+        async function handleBooking(type) {
+            const inputEl = type === 'rl' ? rlIgnInput : mbfIgnInput;
+            const ign = inputEl.value.trim();
+            const runs = parseInt(document.querySelector(`input[name="${type}-runs"]:checked`).value, 10);
+
+            if (!ign) {
+                showNotification('In-game name cannot be empty.', 'error');
+                return;
+            }
+            
+            const bookings = type === 'rl' ? (currentData.rlBookings || []) : (currentData.mbfBookings || []);
+            const maxSlots = type === 'rl' ? MAX_RL_SLOTS : MAX_MBF_SLOTS;
+            
+            const slotsTaken = bookings.reduce((sum, b) => sum + b.runs, 0);
+            const slotsLeft = maxSlots - slotsTaken;
+            const slotsRequired = runs;
+
+            if (slotsRequired > slotsLeft) {
+                const runText = runs > 1 ? 'runs' : 'run';
+                showNotification(`Not enough slots. ${slotsLeft} slots left, you tried to book ${runs} ${runText}.`, 'error');
+                return;
+            }
+
+            if (bookings.some(b => b.ign === ign)) {
+                showNotification(`You have already booked a ${type.toUpperCase()} slot with this name.`, 'error');
+                return;
+            }
+            
+            const newBooking = { ign, runs };
+            const fieldToUpdate = type === 'rl' ? 'rlBookings' : 'mbfBookings';
+            try {
+                await updateDoc(docRef, {
+                    [fieldToUpdate]: arrayUnion(newBooking)
+                });
+                inputEl.value = '';
+                showNotification(`Successfully booked ${runs} ${type.toUpperCase()} run(s) for ${ign}!`, 'success');
+            } catch (error) {
+                console.error("Error booking slot: ", error);
+                showNotification('Failed to book slot, please try again.', 'error');
+            }
+        }
+        
+        async function handleDeleteConsumer(booking, type) {
+            if (adminPasswordInput.value !== ADMIN_PASSWORD) {
+                showNotification('Incorrect admin password.', 'error');
+                return;
+            }
+            const typeName = type.toUpperCase();
+            const fieldToUpdate = type === 'rl' ? 'rlBookings' : 'mbfBookings';
+            try {
+                await updateDoc(docRef, {
+                    [fieldToUpdate]: arrayRemove(booking)
+                });
+                showNotification(`Booking for ${booking.ign} (${typeName}) has been deleted.`, 'success');
+            } catch(error) {
+                console.error(`Error deleting consumer ${booking.ign}:`, error);
+                showNotification('Failed to delete booking.', 'error');
+            }
+        }
+
+        async function handleResetAll(type) {
+            if (adminPasswordInput.value !== ADMIN_PASSWORD) {
+                showNotification('Incorrect admin password.', 'error');
+                return;
+            }
+            const typeName = type.toUpperCase();
+            const fieldToReset = type === 'rl' ? 'rlBookings' : 'mbfBookings';
+            try {
+                await updateDoc(docRef, { [fieldToReset]: [] });
+                showNotification(`All ${typeName} slots have been successfully reset.`, 'success');
+            } catch (error) {
+                console.error(`Error resetting ${typeName} slots: `, error);
+                showNotification(`Failed to reset ${typeName} slots.`, 'error');
+            }
+        }
+
+        onAuthStateChanged(auth, (user) => {
+            if (user) {
+                onSnapshot(docRef, (docSnap) => {
+                    if (docSnap.exists()) {
+                        updateUI(docSnap.data());
+                    } else {
+                        createInitialDocument();
+                    }
+                }, (error) => {
+                     console.error("Error getting document:", error);
+                     showNotification("Could not load data.", "error");
+                });
+            }
+        });
+
+        (async () => {
+            try {
+                if (typeof __initial_auth_token !== 'undefined' && __initial_auth_token) {
+                    await signInWithCustomToken(auth, __initial_auth_token);
+                } else {
+                    await signInAnonymously(auth);
+                }
+            } catch (error) {
+                 console.error("Authentication failed:", error);
+                 showNotification("Authentication failed. Please reload the page.", "error");
+                 loader.style.display = 'none';
+            }
+        })();
+        
+        updateClock();
+        setInterval(updateClock, 1000);
+
+        bookRlBtn.addEventListener('click', () => handleBooking('rl'));
+        bookMbfBtn.addEventListener('click', () => handleBooking('mbf'));
+        resetRlBtn.addEventListener('click', () => handleResetAll('rl'));
+        resetMbfBtn.addEventListener('click', () => handleResetAll('mbf'));
+    </script>
+</body>
+</html>
+
+
